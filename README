@@ -7,3 +7,8 @@ INFO
 
 Este codigo servira como api para imprimir graficas de pay, de barras y links a los 
 archivos de excel dinamicamente generados. En el futuro se convertira en un plugin de wordpress. 
+
+SOURCE 
+
+jpgraph - PHP Charts - OSS - http://jpgraph.net/
+PHPExcel - PHP Excel Engine - OSS - http://phpexcel.codeplex.com/
