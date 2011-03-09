@@ -8,7 +8,69 @@
 
 require_once('config.php');
 require_once('utilities.php');
+require_once ('Classes/jpgraph/jpgraph.php');
+require_once ('Classes/jpgraph/jpgraph_bar.php');  
 
+function do_graph(){ 
+  // This is an example as Huevom Asked
+  // Arreglos con los datos; se pueden rellenar con las salidas
+  // de los queries. Habra que hacer diversas de acuerdo a 
+  // Cada tipo de grafica que deseemos
+  $data1y=array(47,80,40,116);
+  $data2y=array(61,30,82,105);
+  $data3y=array(115,50,70,93);
+  
+  // Crear la grafica. Se requieren estas dos llamadas forzosamente
+  $graph = new Graph(350,200,'auto');
+  $graph->SetScale("textlin");
+  
+  // En el futuro podemo poner otro theme
+  $theme_class=new UniversalTheme;
+  $graph->SetTheme($theme_class);
+
+  // Posiciones textuales en el eje Y
+  $graph->yaxis->SetTickPositions(array(0,30,60,90,120,150), array(15,45,75,105,135));
+  $graph->SetBox(false); //Esta en cajita o no
+
+  // Como llenamos y, las etiquetas en X (modificadas por el query)
+  $graph->ygrid->SetFill(false);
+  $graph->xaxis->SetTickLabels(array('2008','2009','2010','2011'));
+  $graph->yaxis->HideLine(false);
+  $graph->yaxis->HideTicks(false,false);
+  
+  // Crear las barras. Note que enviamos arreglos con los datos ya "digeridos"
+  // en este caso, mandariamos dos, por ejemplo el de gasto ejercido contra
+  // gasto presupuestado
+  $b1plot = new BarPlot($data1y);
+  $b2plot = new BarPlot($data2y);
+  $b3plot = new BarPlot($data3y);
+
+  // Agrupamos el graficado de barras
+  $gbplot = new GroupBarPlot(array($b1plot,$b2plot,$b3plot));
+  
+  // Anexamos la grafica a la grafica en si
+  $graph->Add($gbplot);
+
+  // Colores por barra
+
+  $b1plot->SetColor("white");
+  $b1plot->SetFillColor("#cc1111");
+  
+  $b2plot->SetColor("white");
+  $b2plot->SetFillColor("#11cccc");
+  
+  $b3plot->SetColor("white");
+  $b3plot->SetFillColor("#1111cc");
+  
+  // Titulo de la grafica. Puede ser vacio. 
+  $graph->title->Set("Secretaria de Economia");
+ 
+
+  // La magia de graficar finalmente
+  $graph->Stroke();
+
+  // End of example
+}
 
 /* 
  * En este caso, no tenemos "autenticacion" formalmente. 

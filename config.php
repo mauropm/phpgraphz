@@ -14,8 +14,9 @@
    */ 
 
 define('DB_HOST','localhost');
-define('DB_NAME','mobalis');
-define('DB_USER','mobalis');
-define('DB_PASS','mobalis');
+define('DB_NAME','fundar');
+define('DB_USER','fundar');
+define('DB_PASS','fundar');
+define('API_KEY','fundar314151892'); // This is the apikey you should use in each call. 
 
 ?>
