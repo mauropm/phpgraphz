@@ -2,9 +2,12 @@
   /*
    * API para Fundar
    * @author Mauro Parra <mauropm@gmail.com>
+   * @author Edgar Macias <edgar@laboratoriocitrico.com>
    * (c) 2011 Mauro Parra mauropm@gmail.com
    * (c) 2011 Edgar Macias edgar@laboratoriocitrico.com
    */ 
+
+  // La APIKEY se define en config.php
 
 require_once('config.php');
 require_once('utilities.php');
@@ -12,6 +15,9 @@ require_once ('Classes/jpgraph/jpgraph.php');
 require_once ('Classes/jpgraph/jpgraph_bar.php');  
 require_once ('Classes/jpgraph/jpgraph_canvas.php');
 require_once ('Classes/jpgraph/jpgraph_table.php');
+include_once ('Classes/PHPExcel.php');
+include_once ('Classes/PHPExcel/Writer/Excel2007.php');
+
 
 function do_graph(){ 
   // This is an example as Huevom Asked
@@ -101,6 +107,36 @@ function do_tabs(){
   $graph->Stroke();
 }
 
+
+/* Creamos el excel aca, 
+ * necesitamos que exista un nombre para generar el archivo 
+ */ 
+function do_excel($name="fundar"){
+  //Creamos el objeto de Excel 
+  $objPHPExcel = new PHPExcel();
+  
+  //Propiedades del autor 
+  $objPHPExcel->getProperties()->setCreator("Fundar, Centro de Analisis e Investigacion");
+  $objPHPExcel->getProperties()->setLastModifiedBy("Fundar, Centro de Analisis e Investigacion");
+  $objPHPExcel->getProperties()->setTitle("Publicidad oficial del gobierno federal, Mexico");
+  $objPHPExcel->getProperties()->setSubject("Publicidad Oficial");
+  $objPHPExcel->getProperties()->setDescription("Datos de gasto en Publicidad oficial del gobierno federal mexicano");
+
+  // Aqui anexamos los datos tabulados 
+  $objPHPExcel->setActiveSheetIndex(0);
+  $objPHPExcel->getActiveSheet()->SetCellValue('A1', 'Hello');
+  $objPHPExcel->getActiveSheet()->SetCellValue('B2', 'world!');
+  $objPHPExcel->getActiveSheet()->SetCellValue('C1', 'Hello');
+  $objPHPExcel->getActiveSheet()->SetCellValue('D2', 'world!');
+
+  //Renombramos la hoja -- se puede cambiar
+  $objPHPExcel->getActiveSheet()->setTitle('Publicidad Oficial');
+  
+  //Salvamos el excel: 
+  $objWriter = new PHPExcel_Writer_Excel2007($objPHPExcel);
+  $objWriter->save(getcwd().'/'.$name.'.xlsx');
+}
+
 /* 
  * En este caso, no tenemos "autenticacion" formalmente. 
  * Por seguridad, proporcionaremos un apikey, de 
@@ -126,7 +162,7 @@ function api ($api, $method, $type) {
       do_graph($type);
       break;
     case "excel":
-      do_excel($type);
+      do_excel();
       break; 
     case "tabs":
       do_tabs($type);
