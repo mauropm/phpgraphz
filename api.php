@@ -10,6 +10,8 @@ require_once('config.php');
 require_once('utilities.php');
 require_once ('Classes/jpgraph/jpgraph.php');
 require_once ('Classes/jpgraph/jpgraph_bar.php');  
+require_once ('Classes/jpgraph/jpgraph_canvas.php');
+require_once ('Classes/jpgraph/jpgraph_table.php');
 
 function do_graph(){ 
   // This is an example as Huevom Asked
@@ -70,6 +72,33 @@ function do_graph(){
   $graph->Stroke();
 
   // End of example
+}
+
+/* 
+ * Generador de informacion tabular 
+ */
+function do_tabs(){
+  // Necesitamos decir cuantas columnas y filas tendra esto
+  $cols = 4;
+  $rows = 3;
+
+  // Ponemos la respuesta del query sql en un arreglo de arreglos:
+  $data = array( array('','Jan','Feb','Mar','Apr'),
+	       array('Min','15.2', '12.5', '9.9', '70.0'),
+	       array('Max','23.9', '14.2', '18.6', '71.3'));
+  
+  // Creamos el contexto de una grafica
+  $graph = new CanvasGraph(300,200);
+
+  // Creamos una tabla basica
+  $table = new GTextTable($cols,$rows);
+  $table->Set($data);
+  
+  // Anexamos la tabla a la grafica 
+  $graph->Add($table);
+
+  // Dibujamos la grafica
+  $graph->Stroke();
 }
 
 /* 
