@@ -8,6 +8,8 @@
    */ 
 
   // La APIKEY se define en config.php
+  // La configuracion de la base de datos tales como:
+  // host, user, password, dbname esta en config.php.
 
 require_once('config.php');
 require_once('utilities.php');
@@ -20,6 +22,7 @@ include_once ('Classes/PHPExcel/Writer/Excel2007.php');
 
 
 function do_graph(){ 
+
   // This is an example as Huevom Asked
   // Arreglos con los datos; se pueden rellenar con las salidas
   // de los queries. Habra que hacer diversas de acuerdo a 
@@ -83,21 +86,70 @@ function do_graph(){
 /* 
  * Generador de informacion tabular 
  */
-function do_tabs(){
-  // Necesitamos decir cuantas columnas y filas tendra esto
-  $cols = 4;
-  $rows = 3;
-
-  // Ponemos la respuesta del query sql en un arreglo de arreglos:
-  $data = array( array('','Jan','Feb','Mar','Apr'),
-	       array('Min','15.2', '12.5', '9.9', '70.0'),
-	       array('Max','23.9', '14.2', '18.6', '71.3'));
+function do_tabs($type,$idd=0){
+  // Aqui va el codigo de conexion a la base y el respectivo query
+  $mysql = my_connect();
+  my_use(DB_NAME,$mysql);
+  if($type=="federal"){
+    $query= sprintf("SELECT anio, original, ejercido FROM presupuestos group by anio order by anio");
+    $cols = 3; 
+ } else if ($type=="dependencia"){ 
+    $query= sprintf("SELECT anio, original, ejercido from presupuestos WHERE dependencia='%s' order by anio",
+		    mysql_real_escape_string($idd)
+		    );
+    $cols = 3; 
+  } else if ($type=="gasto"){
+    $query= sprintf("SELECT anio, sum(tv)'tv',sum(Radio) 'Radio', sum(DiariosDF) 'DiariosDF', sum(DiariosEdos) 'DiariosEdos', sum(Revistas) 'Revistas', sum(Complementos) 'Complementos', sum(Internacionales) 'Internacionales', sum(Estudios) 'Estudios', sum(Produccion) 'Produccion' FROM campanas GROUP BY anio");
+    $cols = 10; 
+  } else { 
+    // Aqui va el otro query respectivo, son hasta 4 diferentes queries.
+    // Falta lo de Número de  campañas por secretaria por mes
+    die("Error do_tabs: no existe el type=".$type." for query"); 
+  }
   
+  // Corremos el query, que no puede ser vacio, porque de otra forma 
+  // hubieramos entrado al "die" y no llegariamos aca. 
+  
+  $result = mysql_query($query,$mysql);
+  my_check_result($result,$query,$mysql);
+  
+  // Aqui sabemos que fue un $type dependencia, gasto o federal. 
+  // Lo ideal seria meter eso en un arreglo, como iremos metiendo 
+  // cada row. 
+      
+  // Aqui termina el codigo de conexion a la base de datos y el query
+  
+  // Establecemos el row como el numero de resultados del query.
+  $rows =  mysql_num_rows($result);
+  
+  // Aqui rellenaremos el arreglo "data" de acuerdo a si es 
+  // federal, dependencia o federal. 
+  if($type=="federal"){
+    $data = array(array('A&ntilde;o','Presupuesto','Ejercido'));
+    while($data[] = mysql_fetch_array($result, MYSQL_ASSOC)){
+    }
+  } else if ($type=="dependencia") { 
+    $data = array(array('A&ntilde;o','Presupuesto','Ejercido'));
+    while($data[] = mysql_fetch_array($result, MYSQL_ASSOC)){
+    }
+  } else if ($type=="gasto") { 
+    $data = array(array('A&ntilde;o','TV','Radio','Diarios DF','Diarios Edos', 'Revistas','Complementos','Internacionales','Estudios','Produccion'));
+    while($data[] = mysql_fetch_array($result, MYSQL_ASSOC)){
+    }
+  } else { 
+    die("Error do_tabs: no existe el type=".$type." for filling the array"); 
+  } 
+  
+  // reindizando en caso necesario
+  $data= array_values($data);
+
   // Creamos el contexto de una grafica
   $graph = new CanvasGraph(300,200);
 
   // Creamos una tabla basica
-  $table = new GTextTable($cols,$rows);
+  // Anexamos una porque regresamos unicamente el numero de renglones
+  // de resultado del query, pero falta poner el header. 
+  $table = new GTextTable($cols,$rows+1);
   $table->Set($data);
   
   // Anexamos la tabla a la grafica 
@@ -111,7 +163,8 @@ function do_tabs(){
 /* Creamos el excel aca, 
  * necesitamos que exista un nombre para generar el archivo 
  */ 
-function do_excel($name="fundar"){
+function do_excel($type,$idd=0){
+  // Aqui va la inicializacion del objeto PHPEXcel
   //Creamos el objeto de Excel 
   $objPHPExcel = new PHPExcel();
   
@@ -121,13 +174,95 @@ function do_excel($name="fundar"){
   $objPHPExcel->getProperties()->setTitle("Publicidad oficial del gobierno federal, Mexico");
   $objPHPExcel->getProperties()->setSubject("Publicidad Oficial");
   $objPHPExcel->getProperties()->setDescription("Datos de gasto en Publicidad oficial del gobierno federal mexicano");
+  // Termina inicializacion objeto PHPExcel
 
-  // Aqui anexamos los datos tabulados 
-  $objPHPExcel->setActiveSheetIndex(0);
-  $objPHPExcel->getActiveSheet()->SetCellValue('A1', 'Hello');
-  $objPHPExcel->getActiveSheet()->SetCellValue('B2', 'world!');
-  $objPHPExcel->getActiveSheet()->SetCellValue('C1', 'Hello');
-  $objPHPExcel->getActiveSheet()->SetCellValue('D2', 'world!');
+  // Aqui va el codigo de conexion a la base y el respectivo query
+  $mysql = my_connect();
+  my_use(DB_NAME,$mysql);
+  if($type=="federal"){
+    $query= sprintf("SELECT anio, original, ejercido FROM presupuestos group by anio order by anio");
+    $cols = 3; 
+ } else if ($type=="dependencia"){ 
+    $query= sprintf("SELECT anio, original, ejercido from presupuestos WHERE dependencia='%s' order by anio",
+		    mysql_real_escape_string($idd)
+		    );
+    $cols = 3; 
+  } else if ($type=="gasto"){
+    $query= sprintf("SELECT anio, sum(tv)'tv',sum(Radio) 'Radio', sum(DiariosDF) 'DiariosDF', sum(DiariosEdos) 'DiariosEdos', sum(Revistas) 'Revistas', sum(Complementos) 'Complementos', sum(Internacionales) 'Internacionales', sum(Estudios) 'Estudios', sum(Produccion) 'Produccion' FROM campanas GROUP BY anio");
+    $cols = 10; 
+  } else { 
+    // Aqui va el otro query respectivo, son hasta 4 diferentes queries.
+    // Falta lo de Número de  campañas por secretaria por mes
+    die("Error do_excel: no existe el type=".$type." for query"); 
+  }
+  
+  // Corremos el query, que no puede ser vacio, porque de otra forma 
+  // hubieramos entrado al "die" y no llegariamos aca. 
+  
+  $result = mysql_query($query,$mysql);
+  my_check_result($result,$query,$mysql);
+
+  // Establecemos el row como el numero de resultados del query.
+  $rows =  mysql_num_rows($result);
+  
+  if($type=="federal"){
+    // Escribir el header del excel
+    $objPHPExcel->getActiveSheet()->SetCellValue('A1', 'Año');
+    $objPHPExcel->getActiveSheet()->SetCellValue('B1', 'Original');
+    $objPHPExcel->getActiveSheet()->SetCellValue('C1', 'Ejercido');
+    $starting_pos = ord('A');
+    $index_pos = 0;
+    $mprow=1; 
+    while($data = mysql_fetch_array($result, MYSQL_ASSOC)){
+      $index_pos = 0;
+      $mprow++;
+      foreach ($data as $mpval){
+	$objPHPExcel->getActiveSheet()->SetCellValue(chr($starting_pos+$index_pos).$mprow, $mpval);
+	$index_pos++;
+      }
+    }
+  } else if($type=="dependencia") { 
+    // Escribir el header del excel
+    $objPHPExcel->getActiveSheet()->SetCellValue('A1', 'Año');
+    $objPHPExcel->getActiveSheet()->SetCellValue('B1', 'Original');
+    $objPHPExcel->getActiveSheet()->SetCellValue('C1', 'Ejercido');
+    $starting_pos = ord('A');
+    $index_pos = 0;
+    $mprow=1; 
+    while($data = mysql_fetch_array($result, MYSQL_ASSOC)){
+      $index_pos = 0;
+      $mprow++;
+      foreach ($data as $mpval){
+	$objPHPExcel->getActiveSheet()->SetCellValue(chr($starting_pos+$index_pos).$mprow, $mpval);
+	$index_pos++;
+      }
+    }
+  } else if ($type=="gasto"){ 
+    // Escribir el header del excel
+    $objPHPExcel->getActiveSheet()->SetCellValue('A1', 'Año');
+    $objPHPExcel->getActiveSheet()->SetCellValue('B1', 'TV');
+    $objPHPExcel->getActiveSheet()->SetCellValue('C1', 'Radio');
+    $objPHPExcel->getActiveSheet()->SetCellValue('D1', 'Diarios DF');
+    $objPHPExcel->getActiveSheet()->SetCellValue('E1', 'Diarios Edos');
+    $objPHPExcel->getActiveSheet()->SetCellValue('F1', 'Revistas');
+    $objPHPExcel->getActiveSheet()->SetCellValue('G1', 'Complementos');    
+    $objPHPExcel->getActiveSheet()->SetCellValue('H1', 'Internacionales');
+    $objPHPExcel->getActiveSheet()->SetCellValue('I1', 'Estudios');
+    $objPHPExcel->getActiveSheet()->SetCellValue('J1', 'Produccion');
+        $starting_pos = ord('A');
+    $index_pos = 0;
+    $mprow=1; 
+    while($data = mysql_fetch_array($result, MYSQL_ASSOC)){
+      $index_pos = 0;
+      $mprow++;
+      foreach ($data as $mpval){
+	$objPHPExcel->getActiveSheet()->SetCellValue(chr($starting_pos+$index_pos).$mprow, $mpval);
+	$index_pos++;
+      }
+    }
+  } else { 
+    die("Error do_excel: no existe el type=".$type." for query"); 
+  }
 
   //Renombramos la hoja -- se puede cambiar
   $objPHPExcel->getActiveSheet()->setTitle('Publicidad Oficial');
@@ -162,10 +297,10 @@ function api ($api, $method, $type) {
       do_graph($type);
       break;
     case "excel":
-      do_excel();
+      do_excel($type,0);
       break; 
     case "tabs":
-      do_tabs($type);
+      do_tabs($type,0);
       break;
     default:
       do_tabs($type);
