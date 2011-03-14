@@ -22,15 +22,57 @@ include_once ('Classes/PHPExcel/Writer/Excel2007.php');
 
 
 function do_graph(){ 
-
-  // This is an example as Huevom Asked
-  // Arreglos con los datos; se pueden rellenar con las salidas
-  // de los queries. Habra que hacer diversas de acuerdo a 
-  // Cada tipo de grafica que deseemos
-  $data1y=array(47,80,40,116);
-  $data2y=array(61,30,82,105);
-  $data3y=array(115,50,70,93);
+  // Aqui hay una cosa interesante. Necesitamos calcular el 
+  // numero de barras que mostraremos por anios. 
   
+  // Es decir, hacemos la busqueda y tomamos el numero de 'rows'
+  // de salida como el hint de cuantos elementos habra en cada arreglo
+  // De la misma forma que en tabs o excel, calculamos el numero de datos
+  // que mostraremos, por la cuestion de saber el numero  de 'columns'
+  // que manejaremos por anio. 
+
+  // Aqui va el codigo de conexion a la base y el respectivo query
+  $mysql = my_connect();
+  my_use(DB_NAME,$mysql);
+  if($type=="federal"){
+    $query= sprintf("SELECT anio, original, ejercido FROM presupuestos group by anio order by anio");
+    $cols = 3-1; 
+  } else if ($type=="dependencia"){ 
+    $query= sprintf("SELECT anio, original, ejercido from presupuestos WHERE dependencia='%s' order by anio",
+		    mysql_real_escape_string($idd)
+		    );
+    $cols = 3-1; 
+  } else if ($type=="gasto"){
+    $query= sprintf("SELECT anio, sum(tv)'tv',sum(Radio) 'Radio', sum(DiariosDF) 'DiariosDF', sum(DiariosEdos) 'DiariosEdos', sum(Revistas) 'Revistas', sum(Complementos) 'Complementos', sum(Internacionales) 'Internacionales', sum(Estudios) 'Estudios', sum(Produccion) 'Produccion' FROM campanas GROUP BY anio");
+    $cols = 10-1; 
+  } else { 
+    // Aqui va el otro query respectivo, son hasta 4 diferentes queries.
+    // Falta lo de Número de  campañas por secretaria por mes
+    die("Error do_tabs: no existe el type=".$type." for query"); 
+  }
+
+  // Corremos el query, que no puede ser vacio, porque de otra forma
+  // hubieramos entrado al "die" y no llegariamos aca.                                                                                                               
+
+  $result = mysql_query($query,$mysql);
+  my_check_result($result,$query,$mysql);
+
+  // Aqui sabemos que fue un $type dependencia, gasto o federal. 
+  // Lo ideal seria meter eso en un arreglo, como iremos metiendo
+  // cada row.                                                                                                                                                        
+  // Aqui termina el codigo de conexion a la base de datos y el query
+  // Establecemos el row como el numero de resultados del query.                                                                                                       
+  $rows =  mysql_num_rows($result);
+  $label= array();
+  $dataar= array();
+  for($i=0;$i<$rows;$i++){
+    $data= mysql_fetch_array($result, MYSQL_ASSOC);
+    $label[$i]= $data[0];
+    for($j=1;$j<$cols;$j++){
+      $dataar[$i][$j]=$data[$j]; 
+    }
+  }
+
   // Crear la grafica. Se requieren estas dos llamadas forzosamente
   $graph = new Graph(350,200,'auto');
   $graph->SetScale("textlin");
@@ -45,34 +87,29 @@ function do_graph(){
 
   // Como llenamos y, las etiquetas en X (modificadas por el query)
   $graph->ygrid->SetFill(false);
-  $graph->xaxis->SetTickLabels(array('2008','2009','2010','2011'));
+  $graph->xaxis->SetTickLabels($label);
   $graph->yaxis->HideLine(false);
   $graph->yaxis->HideTicks(false,false);
   
   // Crear las barras. Note que enviamos arreglos con los datos ya "digeridos"
   // en este caso, mandariamos dos, por ejemplo el de gasto ejercido contra
   // gasto presupuestado
-  $b1plot = new BarPlot($data1y);
-  $b2plot = new BarPlot($data2y);
-  $b3plot = new BarPlot($data3y);
+  for($i=0;$i=$cols;$i++){
+    $group[$i]=new BarPlot($dataar[$i]);
+  }
 
   // Agrupamos el graficado de barras
-  $gbplot = new GroupBarPlot(array($b1plot,$b2plot,$b3plot));
+  $gbplot = new GroupBarPlot($group);
   
   // Anexamos la grafica a la grafica en si
   $graph->Add($gbplot);
 
-  // Colores por barra
-
-  $b1plot->SetColor("white");
-  $b1plot->SetFillColor("#cc1111");
+  for($i=0;$i<$cols;$i++){
+    $group[$i]->SetColor("white");
+    $group[$i]->SetFillColor("#cc1111");
+  }
   
-  $b2plot->SetColor("white");
-  $b2plot->SetFillColor("#11cccc");
-  
-  $b3plot->SetColor("white");
-  $b3plot->SetFillColor("#1111cc");
-  
+  // Cambiar el titulo
   // Titulo de la grafica. Puede ser vacio. 
   $graph->title->Set("Secretaria de Economia");
  
