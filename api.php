@@ -214,7 +214,10 @@ function do_tabs($type,$idd=0){
   $data= array_values($data);
 
   // Creamos el contexto de una grafica
-  $graph = new CanvasGraph(300,200);
+  if ($type="gasto")
+    $graph = new CanvasGraph(768,200);
+  else 
+    $graph = new CanvasGraph(300,200);
 
   // Creamos una tabla basica
   // Anexamos una porque regresamos unicamente el numero de renglones
