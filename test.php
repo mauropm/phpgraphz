@@ -2,8 +2,10 @@
 
 require_once('api.php');
 
-//api('fundar314151892','graph', '');
-//api('fundar314151892','excel', '');
-api('fundar314151892','tabs', '');
+//api('fundar314151892','excel', "federal",0);
+//api('fundar314151892','tabs', "federal",0);
+//api('fundar314151892','graph',"federal", 0);
+//api('fundar314151892','graph',"dependencia", 1);
+api('fundar314151892','graph',"gasto", 0);
 
 ?>
