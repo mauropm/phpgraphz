@@ -21,7 +21,7 @@ include_once ('Classes/PHPExcel.php');
 include_once ('Classes/PHPExcel/Writer/Excel2007.php');
 
 
-function do_graph(){ 
+function do_graph($type,$idd=0){ 
   // Aqui hay una cosa interesante. Necesitamos calcular el 
   // numero de barras que mostraremos por anios. 
   
@@ -36,15 +36,15 @@ function do_graph(){
   my_use(DB_NAME,$mysql);
   if($type=="federal"){
     $query= sprintf("SELECT anio, original, ejercido FROM presupuestos group by anio order by anio");
-    $cols = 3-1; 
+    $cols = 2; 
   } else if ($type=="dependencia"){ 
     $query= sprintf("SELECT anio, original, ejercido from presupuestos WHERE dependencia='%s' order by anio",
 		    mysql_real_escape_string($idd)
 		    );
-    $cols = 3-1; 
+    $cols = 2; 
   } else if ($type=="gasto"){
     $query= sprintf("SELECT anio, sum(tv)'tv',sum(Radio) 'Radio', sum(DiariosDF) 'DiariosDF', sum(DiariosEdos) 'DiariosEdos', sum(Revistas) 'Revistas', sum(Complementos) 'Complementos', sum(Internacionales) 'Internacionales', sum(Estudios) 'Estudios', sum(Produccion) 'Produccion' FROM campanas GROUP BY anio");
-    $cols = 10-1; 
+    $cols = 9; 
   } else { 
     // Aqui va el otro query respectivo, son hasta 4 diferentes queries.
     // Falta lo de Número de  campañas por secretaria por mes
@@ -63,27 +63,42 @@ function do_graph(){
   // Aqui termina el codigo de conexion a la base de datos y el query
   // Establecemos el row como el numero de resultados del query.                                                                                                       
   $rows =  mysql_num_rows($result);
-  $label= array();
-  $dataar= array();
   for($i=0;$i<$rows;$i++){
-    $data= mysql_fetch_array($result, MYSQL_ASSOC);
+    $data= mysql_fetch_array($result, MYSQL_NUM);
     $label[$i]= $data[0];
-    for($j=1;$j<$cols;$j++){
-      $dataar[$i][$j]=$data[$j]; 
+    unset($data[0]); 
+    $data = array_values($data);
+    for($j=0;$j<count($data);$j++){
+      $dataar[$j][$i] = $data[$j];
     }
   }
 
+  //print_r($dataar);a
+  //print_r($label);
+  // _DEBUG
+  //print_r($dataar);
+
   // Crear la grafica. Se requieren estas dos llamadas forzosamente
-  $graph = new Graph(350,200,'auto');
+  $graph = new Graph(700,400,'auto');
   $graph->SetScale("textlin");
+  
+  // _DEBUG
+  //print("new graph\n");
   
   // En el futuro podemo poner otro theme
   $theme_class=new UniversalTheme;
   $graph->SetTheme($theme_class);
 
+  // _DEBUG
+  //  print("theme\n");
+
   // Posiciones textuales en el eje Y
-  $graph->yaxis->SetTickPositions(array(0,30,60,90,120,150), array(15,45,75,105,135));
-  $graph->SetBox(false); //Esta en cajita o no
+  //  $graph->yaxis->SetTickPositions(array(0,500000,1000000,1500000,2000000,2500000,3000000,3500000,4000000), array(0,500000,1000000,1500000,2000000,2500000,3000000,3500000,4000000));
+  //  $graph->SetBox(false); //Esta en cajita o no
+
+  // _DEBUG
+  //  print("TickPositions\n");
+  //  print_r($label);
 
   // Como llenamos y, las etiquetas en X (modificadas por el query)
   $graph->ygrid->SetFill(false);
@@ -91,27 +106,45 @@ function do_graph(){
   $graph->yaxis->HideLine(false);
   $graph->yaxis->HideTicks(false,false);
   
+  // _DEBUG
+  //  print("new labels\n");
+
   // Crear las barras. Note que enviamos arreglos con los datos ya "digeridos"
   // en este caso, mandariamos dos, por ejemplo el de gasto ejercido contra
   // gasto presupuestado
-  for($i=0;$i=$cols;$i++){
+  for($i=0;$i<$cols;$i++){
     $group[$i]=new BarPlot($dataar[$i]);
   }
+  
+  //print_r($dataar); 
+  
+  // _DEBUG
+  //  print("group of bar plot\n");
+
+  // _DEBUG
+  //  print_r($group);
 
   // Agrupamos el graficado de barras
   $gbplot = new GroupBarPlot($group);
   
   // Anexamos la grafica a la grafica en si
   $graph->Add($gbplot);
-
-  for($i=0;$i<$cols;$i++){
-    $group[$i]->SetColor("white");
-    $group[$i]->SetFillColor("#cc1111");
-  }
+  
+  //  for($i=0;$i<$cols;$i++){
+  //  $group[$i]->SetColor("blue");
+  //  $group[$i]->SetFillColor("#cc1111");
+  //}
   
   // Cambiar el titulo
   // Titulo de la grafica. Puede ser vacio. 
-  $graph->title->Set("Secretaria de Economia");
+  if($type=='federal'){
+    $graph->title->Set("Gasto Federal");
+  } else if($type=='dependencia'){
+    $graph->title->Set("Gasto Dependencia");
+  } else { 
+    $graph->title->Set("Gasto en medios");
+  }
+
  
 
   // La magia de graficar finalmente
@@ -162,16 +195,16 @@ function do_tabs($type,$idd=0){
   // Aqui rellenaremos el arreglo "data" de acuerdo a si es 
   // federal, dependencia o federal. 
   if($type=="federal"){
-    $data = array(array('A&ntilde;o','Presupuesto','Ejercido'));
-    while($data[] = mysql_fetch_array($result, MYSQL_ASSOC)){
+    $data = array(array('Año','Presupuesto','Ejercido'));
+    while($data[] = mysql_fetch_array($result, MYSQL_NUM)){
     }
   } else if ($type=="dependencia") { 
-    $data = array(array('A&ntilde;o','Presupuesto','Ejercido'));
-    while($data[] = mysql_fetch_array($result, MYSQL_ASSOC)){
+    $data = array(array('Año','Presupuesto','Ejercido'));
+    while($data[] = mysql_fetch_array($result, MYSQL_NUM)){
     }
   } else if ($type=="gasto") { 
-    $data = array(array('A&ntilde;o','TV','Radio','Diarios DF','Diarios Edos', 'Revistas','Complementos','Internacionales','Estudios','Produccion'));
-    while($data[] = mysql_fetch_array($result, MYSQL_ASSOC)){
+    $data = array(array('Año','TV','Radio','Diarios DF','Diarios Edos', 'Revistas','Complementos','Internacionales','Estudios','Produccion'));
+    while($data[] = mysql_fetch_array($result, MYSQL_NUM)){
     }
   } else { 
     die("Error do_tabs: no existe el type=".$type." for filling the array"); 
@@ -186,7 +219,7 @@ function do_tabs($type,$idd=0){
   // Creamos una tabla basica
   // Anexamos una porque regresamos unicamente el numero de renglones
   // de resultado del query, pero falta poner el header. 
-  $table = new GTextTable($cols,$rows+1);
+  $table = new GTextTable($cols,$rows);
   $table->Set($data);
   
   // Anexamos la tabla a la grafica 
@@ -250,7 +283,7 @@ function do_excel($type,$idd=0){
     $starting_pos = ord('A');
     $index_pos = 0;
     $mprow=1; 
-    while($data = mysql_fetch_array($result, MYSQL_ASSOC)){
+    while($data = mysql_fetch_array($result, MYSQL_NUM)){
       $index_pos = 0;
       $mprow++;
       foreach ($data as $mpval){
@@ -266,7 +299,7 @@ function do_excel($type,$idd=0){
     $starting_pos = ord('A');
     $index_pos = 0;
     $mprow=1; 
-    while($data = mysql_fetch_array($result, MYSQL_ASSOC)){
+    while($data = mysql_fetch_array($result, MYSQL_NUM)){
       $index_pos = 0;
       $mprow++;
       foreach ($data as $mpval){
@@ -289,7 +322,7 @@ function do_excel($type,$idd=0){
         $starting_pos = ord('A');
     $index_pos = 0;
     $mprow=1; 
-    while($data = mysql_fetch_array($result, MYSQL_ASSOC)){
+    while($data = mysql_fetch_array($result, MYSQL_NUM)){
       $index_pos = 0;
       $mprow++;
       foreach ($data as $mpval){
@@ -303,6 +336,8 @@ function do_excel($type,$idd=0){
 
   //Renombramos la hoja -- se puede cambiar
   $objPHPExcel->getActiveSheet()->setTitle('Publicidad Oficial');
+
+  $name = $type.$idd; 
   
   //Salvamos el excel: 
   $objWriter = new PHPExcel_Writer_Excel2007($objPHPExcel);
@@ -325,22 +360,22 @@ function do_excel($type,$idd=0){
  * Las opciones seran: graph, tabs, excel
  */ 
 
-function api ($api, $method, $type) { 
+function api ($api, $method, $type,$val=0) { 
   if($api!=API_KEY){
     printerr("API KEY Invalida, intente de nuevo");
   } else { 
     switch($method){
     case "graph":
-      do_graph($type);
+      do_graph($type,$val);
       break;
     case "excel":
-      do_excel($type,0);
+      do_excel($type,$val);
       break; 
     case "tabs":
-      do_tabs($type,0);
+      do_tabs($type,$val);
       break;
     default:
-      do_tabs($type);
+      do_tabs($type,$val);
     }
   }
 }
